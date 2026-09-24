@@ -2,6 +2,7 @@
 
 #include "Node.hpp"
 #include <vector>
+#include <queue>
 
 class AVL {
 public:
@@ -56,6 +57,24 @@ public:
         node->height = std::max(left_height, right_height) + 1;
     }
 
+    void balance_node(Node* node) {
+        update_height(node);
+
+        int balance_factor = get_balance_factor(node);
+        if (balance_factor > 1) { // if tree is left heavy perform right rotation
+            if (get_balance_factor(node->left) < 0) { // if left tree is right heavy do a left rotation on it
+                rotateTree(node->left, true);
+            }
+            rotateTree(node, false);
+        }
+        else if (balance_factor < -1) { // if tree is right heavy perform left rotation
+            if (get_balance_factor(node->right) > 0) { // if right tree is left heavy do a right rotation on it
+                rotateTree(node->right, false);
+            }
+            rotateTree(node, true);
+        }
+    }
+
     // Tree Editing
 
     void insert(Node* insert_node) {
@@ -68,11 +87,9 @@ public:
     }
 
     // wrapper function
-    void insert(int ID) {
-        Node* new_node = new Node(ID);
+    void insert(int ID, std::string name) {
+        Node* new_node = new Node(ID, name);
         insert(new_node);
-
-
     }
 
     void insertHelper(Node* insert_node, Node*& tree_node) {
@@ -88,24 +105,87 @@ public:
                 insertHelper(insert_node, tree_node->right);
             }
 
-            update_height(tree_node);
-
-            int balance_factor = get_balance_factor(tree_node);
-            if (balance_factor > 1) { // if tree is left heavy perform right rotation
-                if (get_balance_factor(tree_node->left) < 0) { // if left tree is right heavy do a left rotation on it
-                    rotateTree(tree_node->left, true);
-                }
-                rotateTree(tree_node, false);
-            }
-            else if (balance_factor < -1) { // if tree is right heavy perform left rotation
-                if (get_balance_factor(tree_node->right) > 0) { // if right tree is left heavy do a right rotation on it
-                    rotateTree(tree_node->right, false);
-                }
-                rotateTree(tree_node, true);
-            }
+            balance_node(tree_node);
         }
     }
 
+
+    void removeID(int ID) {
+        Node* node = root;
+        Node* parent_node;
+        bool left;
+
+        while (node->ID != ID) {
+
+            parent_node = node;
+            if (node->left != nullptr && ID < node->ID) {
+                node = node->left;
+                left = true;
+            }
+            else if (node->right != nullptr && ID > node->ID) {
+                node = node->right;
+                left = false;
+            }
+            else {
+                std::cout << "unsuccessful" << std::endl;
+                return;
+            }
+        }
+
+        
+
+        if (left) parent_node->left = nullptr;
+        else      parent_node->right = nullptr;
+
+        delete node;
+        
+
+    }
+
+
+
+
+    // Tree Searching
+    void search(int ID) {
+        Node* node = root;
+        
+        while (node->ID != ID) {
+            if (node->left != nullptr && ID < node->ID) {
+                node = node->left;
+            }
+            else if (node->right != nullptr && ID > node->ID) {
+                node = node->right;
+            }
+            else {
+                std::cout << "unsuccessful" << std::endl;
+                return;
+            }
+
+        }
+        std::cout << "\"" << node->name << "\"" << std::endl;
+    }
+
+    void search(std::string name) {
+        std::vector<Node*> sorted_nodes = preorder();
+        std::vector<int> matches;
+
+        
+        for (Node* node : sorted_nodes) {
+            if (node->name == name) {
+                matches.push_back(node->ID);
+            }
+        }
+
+        if (matches.empty()) {
+            std::cout << "unsuccessful" << std::endl;
+        }
+        else {
+            for (int match : matches) {
+                std::cout << match << std::endl;
+            }
+        }
+
+    }
 
 
 
@@ -176,6 +256,26 @@ public:
 
     }
 
+    std::vector<Node*> levelorder() {
+        std::vector<Node*> level_order_vector;
+        std::queue<Node*> next_nodes;
+        next_nodes.push(root);
+
+        while(!next_nodes.empty()) {
+            Node* check = next_nodes.front();
+            if (check->left != nullptr) {
+                next_nodes.push(check->left);
+            }
+            if (check->right != nullptr) {
+                next_nodes.push(check->right);
+            }
+
+            level_order_vector.push_back(check);
+            next_nodes.pop();
+        }
+        return level_order_vector;
+    }
+
 
 
 
@@ -185,7 +285,7 @@ public:
     // printing helper function that just prints out the node vector in order
     void print_node_vector(std::vector<Node*> vector) {
         for (std::size_t i = 0; i < vector.size(); ++i) {
-            std::cout << "(" <<vector[i]->ID << ", " << vector[i]->height << ")";
+            std::cout << vector[i]->name;
             
             if (i + 1 < vector.size()) {
                 std::cout << ", ";
@@ -207,5 +307,18 @@ public:
 
     void printPostorder() {
         print_node_vector(postorder());
+    }
+
+    void printLevelorder() {
+        print_node_vector(levelorder());
+    }
+
+    void printLevelCount() {
+        if (root == nullptr) {
+            std::cout << 0 << std::endl;
+        }
+        else {
+            std::cout << root->height << std::endl;
+        }
     }
 };
